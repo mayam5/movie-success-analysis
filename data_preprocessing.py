@@ -479,37 +479,33 @@ print("\n== Skewness before log transformation ==")
 print(skew_df[['column', 'skew', 'level']])
 
 
-# 15. Success Label Creation
+# 15. Log Transformation
 
-df['success'] = (df['profit'] > 0).astype(int)
-
-print("\nSuccess label counts:")
-print(df['success'].value_counts())
-
-
-# 16. Log Transformation
+# success 컬럼은 전처리 코드에서 생성하지 않는다.
+# classification 코드에서 tmdb_preprocessed.csv를 불러온 뒤 따로 생성한다.
 
 log_cols = [
     'budget',
     'vote_count',
     'popularity',
-    'revenue',
-    'profit'
+    'revenue'
 ]
 
 for col in log_cols:
     df[col] = np.log1p(df[col])
 
-print("\nLog Transformation complete")
+print("Log Transformation complete")
 
 for col in log_cols:
     plt.figure(figsize=(10, 4))
     plt.hist(df[col], bins=30)
     plt.title(f'{col} After Log Transform')
+    plt.xlabel(col)
+    plt.ylabel('Count')
     plt.show()
 
 
-# 17. Skewness Check After Log Transformation
+# 16. Skewness Check After Log Transformation
 
 numeric_cols_for_skew = df.select_dtypes(
     include=['int64', 'float64']
@@ -534,7 +530,7 @@ print("\n== Skewness after log transformation ==")
 print(skew_df[['column', 'skew', 'level']])
 
 
-# 18. Scaler Comparison
+# 17. Scaler Comparison
 
 scale_cols = [
     'budget',
@@ -571,7 +567,7 @@ plt.tight_layout()
 plt.show()
 
 
-# 19. Final Scaling
+# 18. Final Scaling
 
 # - budget, popularity, vote_count : many outliers and right-skewed distribution → RobustScaler
 # - runtime, vote_average          : close to normal distribution → StandardScaler
@@ -599,14 +595,14 @@ print("\n=== Scaling Completed ===")
 print(df_scaled[robust_cols + standard_cols].describe().round(3))
 
 
-# 20. Final Null Check
+# 19. Final Null Check
 
 print("\n== Final Null Check ==")
 print(df_scaled.isnull().sum()[df_scaled.isnull().sum() > 0])
 print("Total NULL count:", df_scaled.isnull().sum().sum())
 
 
-# 21. Final Column Check
+# 20. Final Column Check
 
 print("\n== Final Columns ==")
 
@@ -614,52 +610,15 @@ for i, col in enumerate(df_scaled.columns):
     print(f"{i + 1:2d}. {col}")
 
 
-# 22. Classification Dataset Split
-
-# Classification target: success
-# Remove success, profit, revenue to prevent leakage.
-
-X_cls = df_scaled.drop(columns=[
-    'success',
-    'profit',
-    'revenue'
-])
-
-y_cls = df_scaled['success']
-
-X_train_cls, X_temp_cls, y_train_cls, y_temp_cls = train_test_split(
-    X_cls,
-    y_cls,
-    test_size=0.3,
-    random_state=42,
-    stratify=y_cls
-)
-
-X_val_cls, X_test_cls, y_val_cls, y_test_cls = train_test_split(
-    X_temp_cls,
-    y_temp_cls,
-    test_size=0.5,
-    random_state=42,
-    stratify=y_temp_cls
-)
-
-print("\n== Classification Dataset ==")
-print("X_cls:", X_cls.shape)
-print("y_cls:", y_cls.shape)
-print("Train:", X_train_cls.shape)
-print("Val  :", X_val_cls.shape)
-print("Test :", X_test_cls.shape)
-
-
-# 23. Regression Dataset Split
+# 21. Regression Dataset Split
 
 # Regression target: revenue
-# Remove revenue, profit, success to prevent leakage.
+# Remove revenue and profit to prevent leakage.
+# success는 classification 파일에서만 생성하므로 여기서는 제거하지 않는다.
 
 X_reg = df_scaled.drop(columns=[
     'revenue',
-    'profit',
-    'success'
+    'profit'
 ])
 
 y_reg = df_scaled['revenue']
@@ -686,24 +645,18 @@ print("Val  :", X_val_reg.shape)
 print("Test :", X_test_reg.shape)
 
 
-# 24. Optional: Save Preprocessed Data
+# 22. Save Preprocessed Data
 
-# If you need preprocessed data(.CSV FILE), uncomment the following lines.
+# Preprocessed full dataset
+df_scaled.to_csv('tmdb_preprocessed.csv', index=False)
 
-# df_scaled.to_csv('tmdb_preprocessed.csv', index=False)
+# Regression dataset files
+X_train_reg.to_csv('X_train_reg.csv', index=False)
+X_val_reg.to_csv('X_val_reg.csv', index=False)
+X_test_reg.to_csv('X_test_reg.csv', index=False)
 
-# X_train_cls.to_csv('X_train_cls.csv', index=False)
-# X_val_cls.to_csv('X_val_cls.csv', index=False)
-# X_test_cls.to_csv('X_test_cls.csv', index=False)
+y_train_reg.to_csv('y_train_reg.csv', index=False)
+y_val_reg.to_csv('y_val_reg.csv', index=False)
+y_test_reg.to_csv('y_test_reg.csv', index=False)
 
-# y_train_cls.to_csv('y_train_cls.csv', index=False)
-# y_val_cls.to_csv('y_val_cls.csv', index=False)
-# y_test_cls.to_csv('y_test_cls.csv', index=False)
-
-# X_train_reg.to_csv('X_train_reg.csv', index=False)
-# X_val_reg.to_csv('X_val_reg.csv', index=False)
-# X_test_reg.to_csv('X_test_reg.csv', index=False)
-
-# y_train_reg.to_csv('y_train_reg.csv', index=False)
-# y_val_reg.to_csv('y_val_reg.csv', index=False)
-# y_test_reg.to_csv('y_test_reg.csv', index=False)
+print("\nPreprocessed CSV files saved successfully!")
